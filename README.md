@@ -61,3 +61,15 @@ The backend owns three separate histories and sends only the selected history to
 ## Sam workspace tools
 
 Sam uses the OpenAI Responses API with Jarvis-hosted tools. The workspace root defaults to the parent `NewVisualStudioProjects` directory and can be set with `JARVIS_WORKSPACE_ROOT`. Read-only inspection tools can run immediately. File writes and shell commands create an approval request in the UI; Jarvis executes them only after approval. The gateway enforces the workspace boundary, a 120-second command timeout, a 20,000-character output cap, and writes JSONL audit records to `.jarvis/audit.jsonl`. It does not use Ivy and does not apply a command allowlist.
+
+## Browser Voice
+
+Voice is currently browser-only. Each chat has a compact push-to-talk microphone control using browser speech recognition; the transcript is placed into that chat's composer for review before sending. Result-indexed transcript segments replace revised interim results instead of appending them, preventing repeated phrases such as `hi hi how hi how are` on mobile browsers.
+
+The shared speech gear in the header opens one small modal for all three agents. Select Bob, RE, or Sam to enable or disable browser text-to-speech for that agent and test the assigned static voice. Bob and Sam use distinct male voice preferences; RE prioritizes a browser voice containing `Local (Tpf)` when available, then Windows `Zira`, followed by other female voice matches. These preferences and all three unsent drafts persist in browser local storage.
+
+This version makes no OpenAI transcription or audio-upload requests. A future local Whisper adapter can replace browser speech recognition without changing the chat flow. Voice availability varies by device and browser.
+
+Clicking an assistant's name tag replays that specific assistant message through its assigned browser voice. Recognition sessions use a generation guard so results already queued by the browser after Stop or Send cannot repopulate a submitted draft.
+
+On narrow screens, Jarvis displays one selected chat at a time through the `Chat` dropdown beside the speech gear. Mobile browser recognition uses one non-interim result per bounded session and does not auto-restart after the browser ends listening; this avoids the repeated-word behavior that can occur when phones repeatedly terminate and reconnect continuous recognition. Desktop retains continuous recognition with the same result reconciliation.

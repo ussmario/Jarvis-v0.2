@@ -31,14 +31,89 @@ const initialMessages = Object.fromEntries(
   THREADS.map((thread) => [thread.id, [{ role: 'assistant', content: thread.intro }]]),
 )
 
+const DRAFTS_STORAGE_KEY = 'jarvis.drafts'
+const TTS_STORAGE_KEY = 'jarvis.tts'
+const initialDrafts = { chatgpt: '', re: '', codex: '' }
+const initialTts = { chatgpt: true, re: true, codex: true }
+const voicePreferences = {
+  chatgpt: { label: 'Bob voice', matches: ['google uk english male', 'microsoft george', 'daniel', 'alex'] },
+  re: { label: 'RE voice', matches: ['local (tpf)', 'local(tpf)', 'tpf', 'zira', 'google uk english female', 'microsoft hazel', 'samantha', 'female'] },
+  codex: { label: 'Sam voice', matches: ['google us english', 'microsoft david', 'microsoft mark', 'male'] },
+}
+
+function loadStoredObject(key, fallback) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || 'null')
+    return parsed && typeof parsed === 'object' ? { ...fallback, ...parsed } : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function saveStoredObject(key, value) {
+  try { window.localStorage.setItem(key, JSON.stringify(value)) } catch { /* Storage may be blocked. */ }
+}
+
+function findVoice(threadId) {
+  const voices = window.speechSynthesis?.getVoices?.() || []
+  const preferred = voicePreferences[threadId].matches
+  return voices.find((voice) => preferred.some((match) => voice.name.toLowerCase().includes(match))) || voices.find((voice) => voice.lang.startsWith('en')) || voices[0]
+}
+
+function speak(threadId, content) {
+  if (!window.speechSynthesis || !content) return
+  window.speechSynthesis.cancel()
+  const speakNow = () => {
+    const utterance = new SpeechSynthesisUtterance(content)
+    const voice = findVoice(threadId)
+    if (voice) utterance.voice = voice
+    window.speechSynthesis.speak(utterance)
+  }
+  if (window.speechSynthesis.getVoices().length) {
+    speakNow()
+    return
+  }
+  let resolved = false
+  const useFallback = () => {
+    if (resolved) return
+    resolved = true
+    window.speechSynthesis.removeEventListener('voiceschanged', useFallback)
+    speakNow()
+  }
+  window.speechSynthesis.addEventListener('voiceschanged', useFallback, { once: true })
+  window.setTimeout(useFallback, 500)
+}
+
+function mergeTranscriptSegments(segments) {
+  let merged = []
+  for (const segment of segments.filter(Boolean)) {
+    const words = segment.split(/\s+/).filter(Boolean)
+    const normalized = words.map((word) => word.toLowerCase().replace(/[^a-z0-9']/g, ''))
+    let overlap = 0
+    const limit = Math.min(8, merged.length, words.length)
+    for (let size = limit; size > 0; size -= 1) {
+      const prior = merged.slice(-size).map((word) => word.toLowerCase().replace(/[^a-z0-9']/g, ''))
+      if (prior.every((word, index) => word === normalized[index])) { overlap = size; break }
+    }
+    merged = [...merged, ...words.slice(overlap)]
+  }
+  return merged.join(' ')
+}
+
 function App() {
   const [selected, setSelected] = useState('re')
   const [messages, setMessages] = useState(initialMessages)
-  const [drafts, setDrafts] = useState({ chatgpt: '', re: '', codex: '' })
+  const [drafts, setDrafts] = useState(() => loadStoredObject(DRAFTS_STORAGE_KEY, initialDrafts))
+  const [tts, setTts] = useState(() => loadStoredObject(TTS_STORAGE_KEY, initialTts))
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false)
+  const [voiceThread, setVoiceThread] = useState('re')
   const [busy, setBusy] = useState(null)
   const [clearing, setClearing] = useState(null)
   const [clearVersions, setClearVersions] = useState({ chatgpt: 0, re: 0, codex: 0 })
   const [approvals, setApprovals] = useState({ chatgpt: null, re: null, codex: null })
+
+  useEffect(() => saveStoredObject(DRAFTS_STORAGE_KEY, drafts), [drafts])
+  useEffect(() => saveStoredObject(TTS_STORAGE_KEY, tts), [tts])
 
   useEffect(() => {
     fetch('/api/agent/approvals')
@@ -89,6 +164,7 @@ function App() {
         ...current,
         [threadId]: [...current[threadId], { role: 'assistant', content: data.message }],
       }))
+      if (tts[threadId]) speak(threadId, data.message)
     } catch (error) {
       setMessages((current) => ({
         ...current,
@@ -114,6 +190,7 @@ function App() {
       if (typeof data.message !== 'string') throw new Error('Sam returned an invalid message.')
       setApprovals((current) => ({ ...current, [threadId]: null }))
       setMessages((current) => ({ ...current, [threadId]: [...current[threadId], { role: 'assistant', content: data.message }] }))
+      if (tts[threadId]) speak(threadId, data.message)
     } catch (error) {
       setApprovals((current) => ({ ...current, [threadId]: null }))
       setMessages((current) => ({
@@ -171,7 +248,16 @@ function App() {
             <h1>JARVIS <span>v0.2</span></h1>
           </div>
         </div>
-        <div className="network-status"><i /> local network / tailscale ready</div>
+        <div className="topbar-actions">
+          <div className="network-status"><i /> local network / tailscale ready</div>
+          <label className="mobile-chat-picker">
+            <span>Chat</span>
+            <select value={selected} onChange={(event) => setSelected(event.target.value)} aria-label="Select mobile chat">
+              {THREADS.map((thread) => <option key={thread.id} value={thread.id}>{thread.name}</option>)}
+            </select>
+          </label>
+          <button className="speech-button" type="button" aria-label="Open speech settings" onClick={() => setVoiceModalOpen(true)}>◌</button>
+        </div>
       </header>
 
       <section className="thread-grid" aria-label="AI conversations" style={{ gridTemplateColumns: selected === 'chatgpt' ? '2fr 1fr 1fr' : selected === 're' ? '1fr 2fr 1fr' : '1fr 1fr 2fr' }}>
@@ -186,6 +272,7 @@ function App() {
             clearing={clearing === thread.id}
             clearVersion={clearVersions[thread.id]}
             approval={approvals[thread.id]}
+            ttsEnabled={tts[thread.id]}
             onSelect={() => setSelected(thread.id)}
             onDraft={(value) => setDrafts((current) => ({ ...current, [thread.id]: value }))}
             onSend={() => sendMessage(thread.id)}
@@ -195,16 +282,30 @@ function App() {
           />
         ))}
       </section>
+      {voiceModalOpen && <VoiceModal
+        threadId={voiceThread}
+        ttsEnabled={tts[voiceThread]}
+        onThreadChange={setVoiceThread}
+        onTtsChange={(enabled) => setTts((current) => ({ ...current, [voiceThread]: enabled }))}
+        onTest={() => speak(voiceThread, `This is the ${THREADS.find((thread) => thread.id === voiceThread).name} voice.`)}
+        onClose={() => setVoiceModalOpen(false)}
+      />}
       <footer><span>JARVIS v0.2</span><span>sessions stay isolated by design</span></footer>
     </main>
   )
 }
 
-function ChatThread({ thread, active, messages, draft, busy, clearing, clearVersion, approval, onSelect, onDraft, onSend, onClear, onApprove, onDeny }) {
+function ChatThread({ thread, active, messages, draft, busy, clearing, clearVersion, approval, ttsEnabled, onSelect, onDraft, onSend, onClear, onApprove, onDeny }) {
   const bottomRef = useRef(null)
   const messageListRef = useRef(null)
   const stickToBottomRef = useRef(true)
   const [showNewest, setShowNewest] = useState(false)
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef(null)
+  const listeningRef = useRef(false)
+  const baseDraftRef = useRef('')
+  const transcriptSegmentsRef = useRef([])
+  const recognitionSessionRef = useRef(0)
 
   useEffect(() => {
     const node = messageListRef.current
@@ -233,6 +334,64 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }
 
+  function stopListening() {
+    recognitionSessionRef.current += 1
+    listeningRef.current = false
+    setListening(false)
+    recognitionRef.current?.stop()
+    recognitionRef.current = null
+    transcriptSegmentsRef.current = []
+  }
+
+  useEffect(() => () => stopListening(), [])
+
+  function toggleListening() {
+    if (listening) { stopListening(); return }
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!Recognition) return
+    const sessionId = ++recognitionSessionRef.current
+    const mobile = window.matchMedia('(max-width: 800px)').matches
+    baseDraftRef.current = draft.trim()
+    transcriptSegmentsRef.current = []
+    const recognition = new Recognition()
+    recognition.continuous = !mobile
+    recognition.interimResults = !mobile
+    recognition.lang = 'en-GB'
+    recognition.onstart = () => { listeningRef.current = true; setListening(true) }
+    recognition.onresult = (event) => {
+      if (recognitionSessionRef.current !== sessionId || !listeningRef.current) return
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        transcriptSegmentsRef.current[index] = event.results[index][0].transcript.trim()
+      }
+      const transcript = mergeTranscriptSegments(transcriptSegmentsRef.current)
+      const content = [baseDraftRef.current, transcript].filter(Boolean).join(' ')
+      onDraft(content)
+    }
+    recognition.onerror = () => stopListening()
+    recognition.onend = () => {
+      if (!listeningRef.current || recognitionSessionRef.current !== sessionId) return
+      if (window.matchMedia('(max-width: 800px)').matches) {
+        listeningRef.current = false
+        setListening(false)
+        recognitionRef.current = null
+        return
+      }
+      recognitionRef.current = new Recognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+      recognitionRef.current.lang = 'en-GB'
+      recognitionRef.current.onresult = (event) => {
+        if (recognitionSessionRef.current !== sessionId || !listeningRef.current) return
+        recognition.onresult(event)
+      }
+      recognitionRef.current.onerror = recognition.onerror
+      recognitionRef.current.onend = recognition.onend
+      recognitionRef.current.start()
+    }
+    recognitionRef.current = recognition
+    recognition.start()
+  }
+
   return (
     <article className={`thread-card ${active ? 'is-active' : ''} accent-${thread.accent}`} onClick={onSelect}>
       <header className="thread-header">
@@ -253,7 +412,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
         <div className="message-list" ref={messageListRef} onScroll={handleMessageScroll}>
           {messages.map((message, index) => (
             <div className={`message message-${message.role}`} key={`${message.role}-${index}`}>
-              {message.role === 'assistant' && <span className="message-label">{thread.name}</span>}
+              {message.role === 'assistant' && <button className="message-label replay-button" type="button" title={`Replay ${thread.name}'s message`} aria-label={`Replay ${thread.name}'s message`} onClick={(event) => { event.stopPropagation(); speak(thread.id, message.content) }}>{thread.name}</button>}
               <p>{message.content}</p>
             </div>
           ))}
@@ -263,11 +422,40 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
         </div>
         {showNewest && <button className="newest-button" type="button" aria-label={`Jump to newest message in ${thread.name}`} onClick={scrollToNewest}>↓ newest</button>}
       </div>
-      <form className="composer" onSubmit={(event) => { event.preventDefault(); onSend() }} onClick={(event) => event.stopPropagation()}>
+      <form className="composer" onSubmit={(event) => { event.preventDefault(); stopListening(); onSend() }} onClick={(event) => event.stopPropagation()}>
         <textarea value={draft} onFocus={onSelect} onChange={(event) => onDraft(event.target.value)} placeholder={`Message ${thread.name}...`} rows="1" />
+        <button className={`mic-button ${listening ? 'is-listening' : ''}`} type="button" aria-label={listening ? `Stop listening for ${thread.name}` : `Start listening for ${thread.name}`} onClick={toggleListening}>{listening ? '■' : 'mic'}</button>
         <button type="submit" aria-label={`Send message to ${thread.name}`} disabled={busy || !draft.trim()}>↑</button>
       </form>
     </article>
+  )
+}
+
+function VoiceModal({ threadId, ttsEnabled, onThreadChange, onTtsChange, onTest, onClose }) {
+  const thread = THREADS.find((item) => item.id === threadId)
+  const preference = voicePreferences[threadId]
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="voice-modal" role="dialog" aria-modal="true" aria-labelledby="voice-modal-title">
+        <div className="modal-heading">
+          <div><p className="eyebrow">Speech controls</p><h2 id="voice-modal-title">Voice settings</h2></div>
+          <button className="modal-close" type="button" aria-label="Close speech settings" onClick={onClose}>×</button>
+        </div>
+        <label className="voice-field">
+          <span>Chat</span>
+          <select value={threadId} onChange={(event) => onThreadChange(event.target.value)}>
+            {THREADS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+        <div className="voice-setting">
+          <div><strong>{thread.name} voice</strong><p>{preference.label} · browser speech synthesis</p></div>
+          <label className="toggle"><input type="checkbox" checked={ttsEnabled} onChange={(event) => onTtsChange(event.target.checked)} /><span /></label>
+        </div>
+        <button className="test-voice" type="button" onClick={onTest}>test voice</button>
+        <p className="voice-note">Voice availability depends on the browser and device. Preferences are saved in this browser.</p>
+      </section>
+    </div>
   )
 }
 
