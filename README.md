@@ -50,8 +50,10 @@ For a production deployment, serve the built frontend through the backend or a r
 
 ## Ivy Archive
 
-Successful conversations are stored on the WSL host under `Ivy/Bob/conversation.json`, `Ivy/RE/conversation.json`, and `Ivy/Sam/conversation.json`. The archive is server-owned, survives browser refreshes and service restarts, is shared by Tailscale clients, and is ignored by Git because it contains conversation data.
+Successful conversations are stored on the WSL host under `Ivy/Bob/conversation.json`, `Ivy/RE/conversation.json`, and `Ivy/Sam/conversation.json`. The archive is server-owned, append-only, survives browser refreshes and service restarts, is shared by Tailscale clients, and is ignored by Git because it contains conversation data.
 
-## Session isolation
+The displayed-history cursor is stored separately under `.jarvis/display-cursors.json`. Clearing a chat advances only that cursor; it never edits or deletes Ivy. Refreshing loads only messages after the cursor, while providers continue to receive the complete archived history.
 
-The backend owns three separate histories and sends only the selected history to its provider. The backend applies a provider-specific model and prompt per thread; no thread shares messages with another.
+## Session isolation and coordination
+
+The backend owns three separate histories and sends only the selected history to its provider. The backend applies a provider-specific model and prompt per thread. Bob and Sam remain isolated from each other and from RE; RE is the deliberate exception and receives Bob's and Sam's archived histories as read-only, labeled coordinator reference context for each RE request.

@@ -24,6 +24,9 @@ h2 { font-size: clamp(38px, 5vw, 70px); line-height: .97; letter-spacing: -.055e
 .avatar { width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid var(--accent); color: var(--accent); border-radius: 50%; font-size: 13px; }
 .thread-title { flex: 1; min-width: 0; } .thread-title h3 { font-size: 17px; margin: 0 0 2px; font-weight: 500; } .thread-title p { margin: 0; color: #7d8785; font-size: 11px; }
 .provider-tag { color: #7d8785; font-size: 8px; }
+.clear-button { border: 1px solid #485250; color: #8e9995; background: transparent; padding: 5px 7px; font: 500 8px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+.clear-button:hover:not(:disabled), .clear-button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.clear-button:disabled { opacity: .35; cursor: default; }
 .message-list { flex: 1; overflow: auto; padding: 25px 17px; }
 .message { max-width: 92%; margin-bottom: 22px; font-size: 14px; line-height: 1.55; } .message p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .message-assistant { color: #d9ddda; } .message-user { color: #aeb7b3; margin-left: auto; text-align: right; } .message-error { color: #e6a69b; border-left: 2px solid #d8796b; padding-left: 10px; }
