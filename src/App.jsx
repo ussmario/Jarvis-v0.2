@@ -54,6 +54,7 @@ function App() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'The provider did not respond.')
+      if (typeof data.message !== 'string') throw new Error('The provider returned an invalid message.')
       setMessages((current) => ({
         ...current,
         [threadId]: [...current[threadId], { role: 'assistant', content: data.message }],

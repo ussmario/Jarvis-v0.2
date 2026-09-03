@@ -39,9 +39,19 @@ app.post('/api/chat', async (request, response) => {
     }
 
     if (!openai) throw new Error('OPENAI_API_KEY is not configured in .env.')
+    const model = threadId === 'codex' ? (process.env.OPENAI_CODEX_MODEL || 'gpt-5.3-codex') : (process.env.OPENAI_CHAT_MODEL || 'gpt-4.1')
+    if (threadId === 'codex') {
+      const codexResponse = await openai.responses.create({
+        model,
+        instructions: prompts.codex,
+        input: cleanMessages,
+      })
+      return response.json({ message: codexResponse.output_text || 'Codex returned an empty response.' })
+    }
+
     const completion = await openai.chat.completions.create({
-      model: threadId === 'codex' ? (process.env.OPENAI_CODEX_MODEL || 'gpt-5.3-codex') : (process.env.OPENAI_CHAT_MODEL || 'gpt-4.1'),
-      messages: [{ role: 'system', content: prompts[threadId] }, ...cleanMessages],
+      model,
+      messages: [{ role: 'system', content: prompts.chatgpt }, ...cleanMessages],
     })
     return response.json({ message: completion.choices[0]?.message?.content || 'The model returned an empty response.' })
   } catch (error) {
