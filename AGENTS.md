@@ -19,8 +19,10 @@ These rules apply to all work in this repository.
 ## Verification And Merge
 
 - Run the smallest relevant tests first, then the project build or runtime smoke check when applicable.
-- Do not merge an aspect branch until its complete patch is verified functional.
-- Merge verified branches into `master` with a descriptive merge or fast-forward commit.
+- Do not merge an aspect branch until its complete patch is verified functional and the user has explicitly approved the merge.
+- When the branch is verified and ready, notify the user that it is ready for review and wait for explicit merge approval.
+- Never treat approval to implement or approval of a proposal as approval to merge.
+- After explicit approval, merge the verified branch into `master` with a descriptive merge or fast-forward commit.
 - After merging, confirm `master` is clean and the resulting application still passes its checks.
 - Delete the merged aspect branch unless it is intentionally being retained.
 

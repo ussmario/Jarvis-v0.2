@@ -9,10 +9,11 @@ Jarvis uses `master` as its primary branch.
 3. Make one coherent update at a time.
 4. Verify each update and commit it with a purpose-specific message.
 5. Verify the complete aspect branch.
-6. Merge it into `master`.
-7. Recheck `master`, then remove the merged branch.
+6. Notify the maintainer that the branch is ready for review.
+7. Merge it into `master` only after explicit maintainer approval.
+8. Recheck `master`, then remove the merged branch.
 
-Commits are checkpoints. A merge into `master` means the complete aspect is verified and suitable for the stable branch.
+Commits are checkpoints. Verification makes a branch reviewable; only explicit maintainer approval authorizes a merge into `master`.
 
 ## Local Checks
 
