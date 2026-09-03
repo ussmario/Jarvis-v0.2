@@ -37,6 +37,7 @@ function App() {
   const [drafts, setDrafts] = useState({ chatgpt: '', re: '', codex: '' })
   const [busy, setBusy] = useState(null)
   const [clearing, setClearing] = useState(null)
+  const [clearVersions, setClearVersions] = useState({ chatgpt: 0, re: 0, codex: 0 })
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -92,6 +93,7 @@ function App() {
       if (!response.ok) throw new Error(data.error || 'The displayed chat could not be cleared.')
       const thread = THREADS.find((item) => item.id === threadId)
       setMessages((current) => ({ ...current, [threadId]: [{ role: 'assistant', content: thread.intro }] }))
+      setClearVersions((current) => ({ ...current, [threadId]: current[threadId] + 1 }))
     } catch (error) {
       setMessages((current) => ({
         ...current,
@@ -125,6 +127,7 @@ function App() {
             draft={drafts[thread.id]}
             busy={busy === thread.id}
             clearing={clearing === thread.id}
+            clearVersion={clearVersions[thread.id]}
             onSelect={() => setSelected(thread.id)}
             onDraft={(value) => setDrafts((current) => ({ ...current, [thread.id]: value }))}
             onSend={() => sendMessage(thread.id)}
@@ -137,7 +140,7 @@ function App() {
   )
 }
 
-function ChatThread({ thread, active, messages, draft, busy, clearing, onSelect, onDraft, onSend, onClear }) {
+function ChatThread({ thread, active, messages, draft, busy, clearing, clearVersion, onSelect, onDraft, onSend, onClear }) {
   const bottomRef = useRef(null)
   const messageListRef = useRef(null)
   const stickToBottomRef = useRef(true)
@@ -147,6 +150,13 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, onSelect,
     const node = messageListRef.current
     if (node && stickToBottomRef.current) node.scrollTop = node.scrollHeight
   }, [messages, busy])
+
+  useEffect(() => {
+    const node = messageListRef.current
+    stickToBottomRef.current = true
+    setShowNewest(false)
+    if (node) node.scrollTop = node.scrollHeight
+  }, [clearVersion])
 
   function handleMessageScroll(event) {
     const node = event.currentTarget
