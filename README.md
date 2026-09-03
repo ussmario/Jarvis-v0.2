@@ -48,6 +48,10 @@ The installer records the active WSL Node/npm installation in the user service P
 
 For a production deployment, serve the built frontend through the backend or a reverse proxy and put both services behind a Tailscale Serve configuration.
 
+## Ivy Archive
+
+Successful conversations are stored on the WSL host under `Ivy/Bob/conversation.json`, `Ivy/RE/conversation.json`, and `Ivy/Sam/conversation.json`. The archive is server-owned, survives browser refreshes and service restarts, is shared by Tailscale clients, and is ignored by Git because it contains conversation data.
+
 ## Session isolation
 
-The browser owns three separate in-memory histories and sends only the selected history to its provider. The backend applies a provider-specific model and prompt per thread; no thread shares messages with another.
+The backend owns three separate histories and sends only the selected history to its provider. The backend applies a provider-specific model and prompt per thread; no thread shares messages with another.
