@@ -5,6 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"node server/index.js\"",
+    "dev:tailscale": "cross-env JARVIS_REMOTE_ACCESS_MODE=tailscale concurrently \"vite\" \"node server/index.js\"",
+    "service:install": "bash scripts/install-service.sh",
+    "service:start": "systemctl --user start jarvis-v02.service",
+    "service:stop": "systemctl --user stop jarvis-v02.service",
+    "service:restart": "systemctl --user restart jarvis-v02.service",
+    "service:status": "systemctl --user status jarvis-v02.service --no-pager",
+    "service:logs": "journalctl --user -u jarvis-v02.service -n 100 --no-pager",
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js"
@@ -15,7 +22,8 @@
     "express": "^4.21.2",
     "openai": "^4.77.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "cross-env": "^7.0.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 
 const app = express()
 const port = Number(process.env.PORT || 8787)
+const host = process.env.JARVIS_BIND_HOST || (process.env.JARVIS_REMOTE_ACCESS_MODE === 'tailscale' ? '0.0.0.0' : '127.0.0.1')
 const ollamaUrl = (process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434').replace(/\/$/, '')
 
 app.use(cors())
@@ -48,4 +49,4 @@ app.post('/api/chat', async (request, response) => {
   }
 })
 
-app.listen(port, '0.0.0.0', () => console.log(`Jarvis API listening on 0.0.0.0:${port}`))
+app.listen(port, host, () => console.log(`Jarvis API listening on ${host}:${port}`))

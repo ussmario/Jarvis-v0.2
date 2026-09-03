@@ -1,0 +1,18 @@
+[Unit]
+Description=Jarvis v0.2 Tailscale web interface
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__PROJECT_DIR__
+Environment=NODE_ENV=production
+Environment=JARVIS_REMOTE_ACCESS_MODE=tailscale
+Environment=PORT=43118
+Environment=PATH=__NODE_BIN_DIR__:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=__NPM_BIN__ run dev:tailscale
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

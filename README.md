@@ -18,11 +18,31 @@ npm install
 npm run dev
 ```
 
-The Vite interface runs on port `5173`; the server-side provider proxy runs on `8787`.
+The normal `npm run dev` command is local-only. The Vite interface runs on port `43117`; the server-side provider proxy runs on `43118`.
+
+For the WSL/Tailscale runtime used by the previous Jarvis versions, run:
+
+```bash
+npm run dev:tailscale
+```
+
+This keeps Jarvis in WSL, enables the remote runtime mode, and uses the existing `43117/43118` service ports.
+In Tailscale mode, Vite binds to IPv4 loopback so the existing Windows Tailscale Serve route to `127.0.0.1:43117` can reach the WSL service without port forwarding.
 
 ## Tailscale
 
-Both services listen on all interfaces. With Tailscale running on the host, open `http://<tailscale-ip>:5173` from another device on the same tailnet. Do not expose either port to the public internet. Tailscale access controls are the only access control included in this boilerplate.
+With Tailscale Serve configured, open `https://<your-tailnet-hostname>/` from another device on the same tailnet. The existing Serve routes should point `/` to `127.0.0.1:43117` and `/api` to `127.0.0.1:43118/api`. Do not expose either port to the public internet. Tailscale access controls are the only access control included in this boilerplate.
+
+To install the WSL user service used for persistent remote access:
+
+```bash
+npm run service:install
+npm run service:status
+```
+
+The service runs `dev:tailscale`, restarts after failures, and does not modify Tailscale Serve configuration. It can be managed with `npm run service:start`, `npm run service:stop`, `npm run service:restart`, and `npm run service:logs`.
+
+The installer records the active WSL Node/npm installation in the user service PATH. This matters when systemd's default `/usr/bin/node` is older than the Node version used by the interactive shell.
 
 For a production deployment, serve the built frontend through the backend or a reverse proxy and put both services behind a Tailscale Serve configuration.
 
