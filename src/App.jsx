@@ -37,7 +37,7 @@ const initialDrafts = { chatgpt: '', re: '', codex: '' }
 const initialTts = { chatgpt: true, re: true, codex: true }
 const voicePreferences = {
   chatgpt: { label: 'Bob voice', matches: ['google uk english male', 'microsoft george', 'daniel', 'alex'] },
-  re: { label: 'RE voice', matches: ['zira', 'google uk english female', 'microsoft hazel', 'samantha', 'female'] },
+  re: { label: 'RE voice', matches: ['local (tpf)', 'local(tpf)', 'tpf', 'zira', 'google uk english female', 'microsoft hazel', 'samantha', 'female'] },
   codex: { label: 'Sam voice', matches: ['google us english', 'microsoft david', 'microsoft mark', 'male'] },
 }
 

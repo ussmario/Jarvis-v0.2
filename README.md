@@ -66,7 +66,7 @@ Sam uses the OpenAI Responses API with Jarvis-hosted tools. The workspace root d
 
 Voice is currently browser-only. Each chat has a compact push-to-talk microphone control using browser speech recognition; the transcript is placed into that chat's composer for review before sending. Result-indexed transcript segments replace revised interim results instead of appending them, preventing repeated phrases such as `hi hi how hi how are` on mobile browsers.
 
-The shared speech gear in the header opens one small modal for all three agents. Select Bob, RE, or Sam to enable or disable browser text-to-speech for that agent and test the assigned static voice. Bob and Sam use distinct male voice preferences; RE prioritizes the Windows `Zira` voice when available, followed by other female voice matches. These preferences and all three unsent drafts persist in browser local storage.
+The shared speech gear in the header opens one small modal for all three agents. Select Bob, RE, or Sam to enable or disable browser text-to-speech for that agent and test the assigned static voice. Bob and Sam use distinct male voice preferences; RE prioritizes a browser voice containing `Local (Tpf)` when available, then Windows `Zira`, followed by other female voice matches. These preferences and all three unsent drafts persist in browser local storage.
 
 This version makes no OpenAI transcription or audio-upload requests. A future local Whisper adapter can replace browser speech recognition without changing the chat flow. Voice availability varies by device and browser.
 
