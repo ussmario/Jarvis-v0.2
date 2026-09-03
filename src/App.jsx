@@ -250,6 +250,12 @@ function App() {
         </div>
         <div className="topbar-actions">
           <div className="network-status"><i /> local network / tailscale ready</div>
+          <label className="mobile-chat-picker">
+            <span>Chat</span>
+            <select value={selected} onChange={(event) => setSelected(event.target.value)} aria-label="Select mobile chat">
+              {THREADS.map((thread) => <option key={thread.id} value={thread.id}>{thread.name}</option>)}
+            </select>
+          </label>
           <button className="speech-button" type="button" aria-label="Open speech settings" onClick={() => setVoiceModalOpen(true)}>◌</button>
         </div>
       </header>
@@ -363,6 +369,12 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
     recognition.onerror = () => stopListening()
     recognition.onend = () => {
       if (!listeningRef.current || recognitionSessionRef.current !== sessionId) return
+      if (window.matchMedia('(max-width: 800px)').matches) {
+        listeningRef.current = false
+        setListening(false)
+        recognitionRef.current = null
+        return
+      }
       recognitionRef.current = new Recognition()
       recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true

@@ -71,3 +71,5 @@ The shared speech gear in the header opens one small modal for all three agents.
 This version makes no OpenAI transcription or audio-upload requests. A future local Whisper adapter can replace browser speech recognition without changing the chat flow. Voice availability varies by device and browser.
 
 Clicking an assistant's name tag replays that specific assistant message through its assigned browser voice. Recognition sessions use a generation guard so results already queued by the browser after Stop or Send cannot repopulate a submitted draft.
+
+On narrow screens, Jarvis displays one selected chat at a time through the `Chat` dropdown beside the speech gear. Mobile browser recognition uses bounded sessions and does not auto-restart after the browser ends listening; this avoids the repeated-word behavior that can occur when phones repeatedly terminate and reconnect continuous recognition. Desktop retains continuous recognition with the same result reconciliation.
