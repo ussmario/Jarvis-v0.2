@@ -44,6 +44,42 @@ npm run service:status
 
 The service runs `dev:tailscale`, restarts after failures, and does not modify Tailscale Serve configuration. It can be managed with `npm run service:start`, `npm run service:stop`, `npm run service:restart`, and `npm run service:logs`.
 
+### Clean Start And Stop
+
+Closing VS Code is safe; the managed WSL service runs independently. Use these commands from the Jarvis project directory in WSL:
+
+Start Jarvis:
+
+```bash
+npm run service:start
+npm run service:status
+npm run verify:runtime
+```
+
+Stop Jarvis cleanly:
+
+```bash
+npm run service:stop
+npm run service:status
+```
+
+The expected stopped state is `inactive (dead)`. Tailscale Serve remains configured, but the URL will be unavailable until Jarvis starts again. Do not use `kill -9` on the service processes and do not start a second `npm run dev` while the managed service is active.
+
+For a full WSL shutdown after stopping Jarvis, run this from Windows PowerShell:
+
+```powershell
+wsl --shutdown
+```
+
+To bring it back after a full WSL shutdown, open WSL, return to this project directory, and run the start sequence above. If the Windows startup task is installed, it starts the WSL service automatically when you sign in; `npm run service:status` remains the authoritative check.
+
+Restart Jarvis after code or `.env` changes:
+
+```bash
+npm run service:restart
+npm run verify:runtime
+```
+
 The installer records the active WSL Node/npm installation in the user service PATH. This matters when systemd's default `/usr/bin/node` is older than the Node version used by the interactive shell.
 
 For a production deployment, serve the built frontend through the backend or a reverse proxy and put both services behind a Tailscale Serve configuration.
