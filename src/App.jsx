@@ -115,14 +115,6 @@ function App() {
         <div className="network-status"><i /> local network / tailscale ready</div>
       </header>
 
-      <section className="intro-row">
-        <div>
-          <p className="eyebrow">Three minds. One workspace.</p>
-          <h2>Stay in the room<br /><em>with your intelligence.</em></h2>
-        </div>
-        <p className="intro-copy">Three independent conversations, held side by side. Focus one when the work gets deep; keep the wider system in view.</p>
-      </section>
-
       <section className="thread-grid" aria-label="AI conversations" style={{ gridTemplateColumns: selected === 'chatgpt' ? '2fr 1fr 1fr' : selected === 're' ? '1fr 2fr 1fr' : '1fr 1fr 2fr' }}>
         {THREADS.map((thread) => (
           <ChatThread
@@ -147,10 +139,29 @@ function App() {
 
 function ChatThread({ thread, active, messages, draft, busy, clearing, onSelect, onDraft, onSend, onClear }) {
   const bottomRef = useRef(null)
+  const messageListRef = useRef(null)
+  const stickToBottomRef = useRef(true)
+  const [showNewest, setShowNewest] = useState(false)
+
   useEffect(() => {
-    const node = bottomRef.current
-    if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth' })
+    const node = messageListRef.current
+    if (node && stickToBottomRef.current) node.scrollTop = node.scrollHeight
   }, [messages, busy])
+
+  function handleMessageScroll(event) {
+    const node = event.currentTarget
+    const atBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 40
+    stickToBottomRef.current = atBottom
+    setShowNewest(!atBottom)
+  }
+
+  function scrollToNewest() {
+    const node = messageListRef.current
+    if (!node) return
+    stickToBottomRef.current = true
+    setShowNewest(false)
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
+  }
 
   return (
     <article className={`thread-card ${active ? 'is-active' : ''} accent-${thread.accent}`} onClick={onSelect}>
@@ -168,15 +179,18 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, onSelect,
           {clearing ? 'clearing' : 'clear'}
         </button>
       </header>
-      <div className="message-list">
-        {messages.map((message, index) => (
-          <div className={`message message-${message.role}`} key={`${message.role}-${index}`}>
-            {message.role === 'assistant' && <span className="message-label">{thread.name}</span>}
-            <p>{message.content}</p>
-          </div>
-        ))}
-        {busy && <div className="typing"><span /><span /><span /></div>}
-        <div ref={bottomRef} />
+      <div className="message-pane">
+        <div className="message-list" ref={messageListRef} onScroll={handleMessageScroll}>
+          {messages.map((message, index) => (
+            <div className={`message message-${message.role}`} key={`${message.role}-${index}`}>
+              {message.role === 'assistant' && <span className="message-label">{thread.name}</span>}
+              <p>{message.content}</p>
+            </div>
+          ))}
+          {busy && <div className="typing"><span /><span /><span /></div>}
+          <div ref={bottomRef} />
+        </div>
+        {showNewest && <button className="newest-button" type="button" aria-label={`Jump to newest message in ${thread.name}`} onClick={scrollToNewest}>↓ newest</button>}
       </div>
       <form className="composer" onSubmit={(event) => { event.preventDefault(); onSend() }} onClick={(event) => event.stopPropagation()}>
         <textarea value={draft} onFocus={onSelect} onChange={(event) => onDraft(event.target.value)} placeholder={`Message ${thread.name}...`} rows="1" />
