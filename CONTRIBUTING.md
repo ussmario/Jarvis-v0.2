@@ -35,4 +35,4 @@ Do not run `npm run dev:tailscale` while the `jarvis-v02.service` is active; bot
 
 ## Runtime Updates
 
-The development and Tailscale commands run the backend with Node watch mode. Backend source changes reload automatically, and Vite handles frontend hot updates. A service restart is still required after changing `.env`, dependencies, the systemd template, or switching branches. The maintainer performs that restart and runs `npm run verify:runtime` as part of branch verification; contributors do not need to remember it manually.
+The development and Tailscale commands run the backend with a polling watcher because filesystem events are unreliable for this WSL/OneDrive workspace. Backend source changes reload automatically, and Vite handles frontend hot updates. A service restart is still required after changing `.env`, dependencies, the systemd template, or switching branches. The maintainer performs that restart and runs `npm run verify:runtime` as part of branch verification; contributors do not need to remember it manually.

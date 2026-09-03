@@ -12,7 +12,7 @@
     "service:restart": "systemctl --user restart jarvis-v02.service",
     "service:status": "systemctl --user status jarvis-v02.service --no-pager",
     "service:logs": "journalctl --user -u jarvis-v02.service -n 100 --no-pager",
-    "server:watch": "node --watch server/index.js",
+    "server:watch": "bash scripts/watch-server.sh",
     "verify:runtime": "bash scripts/check-runtime.sh",
     "build": "vite build",
     "preview": "vite preview",
