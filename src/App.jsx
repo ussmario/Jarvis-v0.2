@@ -62,7 +62,7 @@ function App() {
     } catch (error) {
       setMessages((current) => ({
         ...current,
-        [threadId]: [...current[threadId], { role: 'error', content: error.message }],
+        [threadId]: [...current[threadId], { role: 'error', content: error instanceof Error ? error.message : String(error) }],
       }))
     } finally {
       setBusy(null)
@@ -112,7 +112,10 @@ function App() {
 
 function ChatThread({ thread, active, messages, draft, busy, onSelect, onDraft, onSend }) {
   const bottomRef = useRef(null)
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages, busy])
+  useEffect(() => {
+    const node = bottomRef.current
+    if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, busy])
 
   return (
     <article className={`thread-card ${active ? 'is-active' : ''} accent-${thread.accent}`} onClick={onSelect}>
