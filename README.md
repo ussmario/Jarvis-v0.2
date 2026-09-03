@@ -69,3 +69,5 @@ Voice is currently browser-only. Each chat has a compact push-to-talk microphone
 The shared speech gear in the header opens one small modal for all three agents. Select Bob, RE, or Sam to enable or disable browser text-to-speech for that agent and test the assigned static voice. Bob and Sam use distinct male voice preferences; RE uses a female preference when the browser provides matching voices, with an English fallback otherwise. These preferences and all three unsent drafts persist in browser local storage.
 
 This version makes no OpenAI transcription or audio-upload requests. A future local Whisper adapter can replace browser speech recognition without changing the chat flow. Voice availability varies by device and browser.
+
+Clicking an assistant's name tag replays that specific assistant message through its assigned browser voice. Recognition sessions use a generation guard so results already queued by the browser after Stop or Send cannot repopulate a submitted draft.

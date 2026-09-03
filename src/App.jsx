@@ -63,10 +63,25 @@ function findVoice(threadId) {
 function speak(threadId, content) {
   if (!window.speechSynthesis || !content) return
   window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(content)
-  const voice = findVoice(threadId)
-  if (voice) utterance.voice = voice
-  window.speechSynthesis.speak(utterance)
+  const speakNow = () => {
+    const utterance = new SpeechSynthesisUtterance(content)
+    const voice = findVoice(threadId)
+    if (voice) utterance.voice = voice
+    window.speechSynthesis.speak(utterance)
+  }
+  if (window.speechSynthesis.getVoices().length) {
+    speakNow()
+    return
+  }
+  let resolved = false
+  const useFallback = () => {
+    if (resolved) return
+    resolved = true
+    window.speechSynthesis.removeEventListener('voiceschanged', useFallback)
+    speakNow()
+  }
+  window.speechSynthesis.addEventListener('voiceschanged', useFallback, { once: true })
+  window.setTimeout(useFallback, 500)
 }
 
 function mergeTranscriptSegments(segments) {
@@ -284,6 +299,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
   const listeningRef = useRef(false)
   const baseDraftRef = useRef('')
   const transcriptSegmentsRef = useRef([])
+  const recognitionSessionRef = useRef(0)
 
   useEffect(() => {
     const node = messageListRef.current
@@ -313,6 +329,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
   }
 
   function stopListening() {
+    recognitionSessionRef.current += 1
     listeningRef.current = false
     setListening(false)
     recognitionRef.current?.stop()
@@ -326,6 +343,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
     if (listening) { stopListening(); return }
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!Recognition) return
+    const sessionId = ++recognitionSessionRef.current
     baseDraftRef.current = draft.trim()
     transcriptSegmentsRef.current = []
     const recognition = new Recognition()
@@ -334,6 +352,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
     recognition.lang = 'en-GB'
     recognition.onstart = () => { listeningRef.current = true; setListening(true) }
     recognition.onresult = (event) => {
+      if (recognitionSessionRef.current !== sessionId || !listeningRef.current) return
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         transcriptSegmentsRef.current[index] = event.results[index][0].transcript.trim()
       }
@@ -343,12 +362,15 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
     }
     recognition.onerror = () => stopListening()
     recognition.onend = () => {
-      if (!listeningRef.current) return
+      if (!listeningRef.current || recognitionSessionRef.current !== sessionId) return
       recognitionRef.current = new Recognition()
       recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true
       recognitionRef.current.lang = 'en-GB'
-      recognitionRef.current.onresult = recognition.onresult
+      recognitionRef.current.onresult = (event) => {
+        if (recognitionSessionRef.current !== sessionId || !listeningRef.current) return
+        recognition.onresult(event)
+      }
       recognitionRef.current.onerror = recognition.onerror
       recognitionRef.current.onend = recognition.onend
       recognitionRef.current.start()
@@ -377,7 +399,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
         <div className="message-list" ref={messageListRef} onScroll={handleMessageScroll}>
           {messages.map((message, index) => (
             <div className={`message message-${message.role}`} key={`${message.role}-${index}`}>
-              {message.role === 'assistant' && <span className="message-label">{thread.name}</span>}
+              {message.role === 'assistant' && <button className="message-label replay-button" type="button" title={`Replay ${thread.name}'s message`} aria-label={`Replay ${thread.name}'s message`} onClick={(event) => { event.stopPropagation(); speak(thread.id, message.content) }}>{thread.name}</button>}
               <p>{message.content}</p>
             </div>
           ))}
