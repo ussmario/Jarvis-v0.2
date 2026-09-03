@@ -1,0 +1,16 @@
+[Unit]
+Description=Codex remote control for mobile access
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=CODEX_HOME=__CODEX_HOME__
+Environment=PATH=__CODEX_BIN_DIR__:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=__CODEX_BIN__ remote-control start
+ExecStop=__CODEX_BIN__ remote-control stop
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
