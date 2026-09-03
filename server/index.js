@@ -49,6 +49,16 @@ function requestedToolFor(content) {
   return null
 }
 
+function toolResultMessage(toolName, result) {
+  if (toolName === 'run_command') {
+    if (result.exitCode === 0 && !result.output) return 'Sam completed the command successfully.'
+    return `Sam completed the command.\n\n${result.output || `Exit code: ${result.exitCode ?? 'unknown'}`}`
+  }
+  if (toolName === 'write_file') return `Sam wrote ${result.path}.`
+  if (toolName === 'read_file') return `Sam read ${result.path}.`
+  return `Sam completed ${toolName}.`
+}
+
 app.get('/api/health', (_request, response) => response.json({ ok: true }))
 
 app.get('/api/agent/status', (_request, response) => response.json({ workspaceRoot: agentWorkspaceRoot(), pendingApprovals: pendingApprovals.size }))
@@ -142,6 +152,8 @@ app.post('/api/chat', async (request, response) => {
 async function runCodexAgent({ model, providerMessages, cleanMessages, userMessage, continuation }) {
   let input = continuation ? [...continuation.input, ...continuation.output, continuation.toolOutput] : providerMessages
   const requestedTool = continuation ? null : requestedToolFor(userMessage.content)
+  let lastToolResult = continuation?.toolOutput?.output ? JSON.parse(continuation.toolOutput.output) : null
+  let lastToolName = continuation?.toolName || null
   let response = await openai.responses.create({
     model,
     instructions: prompts.codex,
@@ -153,7 +165,7 @@ async function runCodexAgent({ model, providerMessages, cleanMessages, userMessa
 
   while (true) {
     const call = response.output.find((item) => item.type === 'function_call')
-    if (!call) return { message: response.output_text || 'Codex returned an empty response.' }
+    if (!call) return { message: response.output_text || (lastToolName ? toolResultMessage(lastToolName, lastToolResult || {}) : 'Sam returned an empty response.') }
     let args
     try {
       args = JSON.parse(call.arguments || '{}')
@@ -177,6 +189,8 @@ async function runCodexAgent({ model, providerMessages, cleanMessages, userMessa
       return { pendingApproval: { id, tool: call.name, arguments: args } }
     }
     const toolResult = await executeTool(call.name, args)
+    lastToolName = call.name
+    lastToolResult = toolResult
     input = [...input, ...response.output, { type: 'function_call_output', call_id: call.call_id, output: JSON.stringify(toolResult) }]
     response = await openai.responses.create({ model, instructions: prompts.codex, input, tools: codexTools, parallel_tool_calls: false })
   }
@@ -197,6 +211,7 @@ app.post('/api/agent/approvals/:approvalId/approve', async (request, response) =
         input: approval.input,
         output: approval.output,
         toolOutput: { type: 'function_call_output', call_id: approval.call.call_id, output: JSON.stringify(toolResult) },
+        toolName: approval.call.name,
       },
     })
     if (result.pendingApproval) return response.json(result)
