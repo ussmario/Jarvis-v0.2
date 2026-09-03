@@ -57,3 +57,7 @@ The displayed-history cursor is stored separately under `.jarvis/display-cursors
 ## Session isolation and coordination
 
 The backend owns three separate histories and sends only the selected history to its provider. The backend applies a provider-specific model and prompt per thread. Bob and Sam remain isolated from each other and from RE; RE is the deliberate exception and receives Bob's and Sam's archived histories as read-only, labeled coordinator reference context for each RE request.
+
+## Sam workspace tools
+
+Sam uses the OpenAI Responses API with Jarvis-hosted tools. The workspace root defaults to the parent `NewVisualStudioProjects` directory and can be set with `JARVIS_WORKSPACE_ROOT`. Read-only inspection tools can run immediately. File writes and shell commands create an approval request in the UI; Jarvis executes them only after approval. The gateway enforces the workspace boundary, a 120-second command timeout, a 20,000-character output cap, and writes JSONL audit records to `.jarvis/audit.jsonl`. It does not use Ivy and does not apply a command allowlist.
