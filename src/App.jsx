@@ -38,6 +38,17 @@ function App() {
   const [busy, setBusy] = useState(null)
   const [clearing, setClearing] = useState(null)
   const [clearVersions, setClearVersions] = useState({ chatgpt: 0, re: 0, codex: 0 })
+  const [approvals, setApprovals] = useState({ chatgpt: null, re: null, codex: null })
+
+  useEffect(() => {
+    fetch('/api/agent/approvals')
+      .then((response) => response.json())
+      .then((data) => {
+        const approval = data.approvals?.find((item) => item.threadId === 'codex')
+        if (approval) setApprovals((current) => ({ ...current, codex: approval }))
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -69,6 +80,10 @@ function App() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'The provider did not respond.')
+      if (data.pendingApproval) {
+        setApprovals((current) => ({ ...current, [threadId]: data.pendingApproval }))
+        return
+      }
       if (typeof data.message !== 'string') throw new Error('The provider returned an invalid message.')
       setMessages((current) => ({
         ...current,
@@ -81,6 +96,48 @@ function App() {
       }))
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function approveAction(threadId) {
+    const approval = approvals[threadId]
+    if (!approval || busy) return
+    setBusy(threadId)
+    try {
+      const response = await fetch(`/api/agent/approvals/${approval.id}/approve`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'The approved action failed.')
+      if (data.pendingApproval) {
+        setApprovals((current) => ({ ...current, [threadId]: data.pendingApproval }))
+        return
+      }
+      if (typeof data.message !== 'string') throw new Error('Sam returned an invalid message.')
+      setApprovals((current) => ({ ...current, [threadId]: null }))
+      setMessages((current) => ({ ...current, [threadId]: [...current[threadId], { role: 'assistant', content: data.message }] }))
+    } catch (error) {
+      setApprovals((current) => ({ ...current, [threadId]: null }))
+      setMessages((current) => ({
+        ...current,
+        [threadId]: [...current[threadId], { role: 'error', content: error instanceof Error ? error.message : String(error) }],
+      }))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function denyAction(threadId) {
+    const approval = approvals[threadId]
+    if (!approval || busy) return
+    try {
+      const response = await fetch(`/api/agent/approvals/${approval.id}/deny`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'The approval request could not be denied.')
+      setApprovals((current) => ({ ...current, [threadId]: null }))
+    } catch (error) {
+      setMessages((current) => ({
+        ...current,
+        [threadId]: [...current[threadId], { role: 'error', content: error instanceof Error ? error.message : String(error) }],
+      }))
     }
   }
 
@@ -128,10 +185,13 @@ function App() {
             busy={busy === thread.id}
             clearing={clearing === thread.id}
             clearVersion={clearVersions[thread.id]}
+            approval={approvals[thread.id]}
             onSelect={() => setSelected(thread.id)}
             onDraft={(value) => setDrafts((current) => ({ ...current, [thread.id]: value }))}
             onSend={() => sendMessage(thread.id)}
             onClear={() => clearDisplayedChat(thread.id)}
+            onApprove={() => approveAction(thread.id)}
+            onDeny={() => denyAction(thread.id)}
           />
         ))}
       </section>
@@ -140,7 +200,7 @@ function App() {
   )
 }
 
-function ChatThread({ thread, active, messages, draft, busy, clearing, clearVersion, onSelect, onDraft, onSend, onClear }) {
+function ChatThread({ thread, active, messages, draft, busy, clearing, clearVersion, approval, onSelect, onDraft, onSend, onClear, onApprove, onDeny }) {
   const bottomRef = useRef(null)
   const messageListRef = useRef(null)
   const stickToBottomRef = useRef(true)
@@ -198,6 +258,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
             </div>
           ))}
           {busy && <div className="typing"><span /><span /><span /></div>}
+          {approval && <div className="approval-card"><span className="message-label">Sam requests approval</span><p>{approval.tool}</p><pre>{JSON.stringify(approval.arguments, null, 2)}</pre><div className="approval-actions"><button type="button" onClick={onApprove} disabled={busy}>approve action</button><button type="button" onClick={onDeny} disabled={busy}>deny</button></div></div>}
           <div ref={bottomRef} />
         </div>
         {showNewest && <button className="newest-button" type="button" aria-label={`Jump to newest message in ${thread.name}`} onClick={scrollToNewest}>↓ newest</button>}
