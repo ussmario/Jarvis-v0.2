@@ -7,6 +7,7 @@ const workspaceRoot = path.resolve(process.env.JARVIS_WORKSPACE_ROOT || path.res
 const stateRoot = path.resolve(process.env.JARVIS_DISPLAY_STATE_ROOT || path.join(process.cwd(), '.jarvis'))
 const auditPath = path.join(stateRoot, 'audit.jsonl')
 const maxOutput = 20000
+const bwrapPath = process.env.JARVIS_BWRAP_PATH || '/home/mario/.local/bin/bwrap'
 
 export const codexTools = [
   {
@@ -121,7 +122,7 @@ function runCommand(command, timeoutMs = 120000) {
     ]
     const home = process.env.HOME
     if (home && existsSync(path.join(home, '.nvm'))) sandboxArgs.splice(16, 0, '--ro-bind', path.join(home, '.nvm'), path.join(home, '.nvm'))
-    const child = spawn(process.env.JARVIS_BWRAP_PATH || 'bwrap', sandboxArgs)
+    const child = spawn(existsSync(bwrapPath) ? bwrapPath : 'bwrap', sandboxArgs)
     let output = ''
     const collect = (chunk) => { output = `${output}${chunk}`.slice(-maxOutput) }
     child.stdout.on('data', collect)

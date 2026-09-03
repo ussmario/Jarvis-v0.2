@@ -39,6 +39,16 @@ function formatCoordinatorContext({ bob, sam }) {
   ].join('\n')
 }
 
+function requestedToolFor(content) {
+  const text = content.toLowerCase()
+  if (/\b(delete|remove|run|execute|test|build|commit|merge)\b/.test(text)) return 'run_command'
+  if (/\b(create|write|edit|update|modify)\b/.test(text)) return 'write_file'
+  if (/\b(list)\b/.test(text)) return 'list_directory'
+  if (/\b(search|find|grep)\b/.test(text)) return 'search_workspace'
+  if (/\b(read|show|display|open|inspect)\b/.test(text)) return 'read_file'
+  return null
+}
+
 app.get('/api/health', (_request, response) => response.json({ ok: true }))
 
 app.get('/api/agent/status', (_request, response) => response.json({ workspaceRoot: agentWorkspaceRoot(), pendingApprovals: pendingApprovals.size }))
@@ -131,7 +141,15 @@ app.post('/api/chat', async (request, response) => {
 
 async function runCodexAgent({ model, providerMessages, cleanMessages, userMessage, continuation }) {
   let input = continuation ? [...continuation.input, ...continuation.output, continuation.toolOutput] : providerMessages
-  let response = await openai.responses.create({ model, instructions: prompts.codex, input, tools: codexTools, parallel_tool_calls: false })
+  const requestedTool = continuation ? null : requestedToolFor(userMessage.content)
+  let response = await openai.responses.create({
+    model,
+    instructions: prompts.codex,
+    input,
+    tools: codexTools,
+    parallel_tool_calls: false,
+    ...(requestedTool ? { tool_choice: { type: 'function', name: requestedTool } } : {}),
+  })
 
   while (true) {
     const call = response.output.find((item) => item.type === 'function_call')
