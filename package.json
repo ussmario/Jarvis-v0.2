@@ -4,14 +4,16 @@
   "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"node server/index.js\"",
-    "dev:tailscale": "cross-env JARVIS_REMOTE_ACCESS_MODE=tailscale concurrently \"vite\" \"node server/index.js\"",
+    "dev": "concurrently \"vite\" \"npm run server:watch\"",
+    "dev:tailscale": "cross-env JARVIS_REMOTE_ACCESS_MODE=tailscale concurrently \"vite\" \"npm run server:watch\"",
     "service:install": "bash scripts/install-service.sh",
     "service:start": "systemctl --user start jarvis-v02.service",
     "service:stop": "systemctl --user stop jarvis-v02.service",
     "service:restart": "systemctl --user restart jarvis-v02.service",
     "service:status": "systemctl --user status jarvis-v02.service --no-pager",
     "service:logs": "journalctl --user -u jarvis-v02.service -n 100 --no-pager",
+    "server:watch": "bash scripts/watch-server.sh",
+    "verify:runtime": "bash scripts/check-runtime.sh",
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js"
