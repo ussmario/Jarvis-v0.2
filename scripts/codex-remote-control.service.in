@@ -4,12 +4,13 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 Environment=CODEX_HOME=__CODEX_HOME__
 Environment=PATH=__CODEX_BIN_DIR__:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=__CODEX_BIN__ remote-control start
-Restart=on-failure
-RestartSec=5
+ExecStop=__CODEX_BIN__ remote-control stop
+TimeoutStopSec=30
 
 [Install]
 WantedBy=default.target

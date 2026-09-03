@@ -82,7 +82,7 @@ npm run codex:service:install
 npm run codex:service:status
 ```
 
-The installer enables `codex-remote-control.service` under the WSL user systemd target, using the real WSL Codex binary and `CODEX_HOME` (normally `/home/mario/.codex`). It starts automatically when the WSL user systemd session starts, including after `wsl --shutdown`; Jarvis does not need to be running first.
+The installer enables `codex-remote-control.service` under the WSL user systemd target, using the real WSL Codex binary and `CODEX_HOME` (normally `/home/mario/.codex`). It starts automatically when the WSL user systemd session starts, including after `wsl --shutdown`; Jarvis does not need to be running first. Codex starts a detached app-server daemon, so a healthy systemd status may report `active (exited)` for the launcher while the remote-control daemon continues running.
 
 Manage it independently with:
 
