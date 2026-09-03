@@ -32,5 +32,6 @@ h2 { font-size: clamp(38px, 5vw, 70px); line-height: .97; letter-spacing: -.055e
 .composer button { width: 31px; height: 31px; flex: 0 0 auto; border: 1px solid var(--accent); color: var(--accent); background: transparent; cursor: pointer; font-size: 20px; line-height: 1; } .composer button:disabled { opacity: .25; cursor: default; }
 .accent-gold { --accent: #d9b87c; } .accent-coral { --accent: #d8796b; } .accent-mint { --accent: #92c4aa; }
 footer { padding-top: 18px; color: #596361; } footer span:last-child { color: #737e7b; }
+.error-screen { justify-content: center; align-items: flex-start; gap: 12px; } .error-screen h1 { font-size: clamp(30px, 5vw, 54px); max-width: 600px; margin: 0; } .error-screen p:not(.eyebrow) { color: #aeb7b3; max-width: 600px; } .error-screen button { border: 1px solid #d9b87c; color: #d9b87c; background: transparent; padding: 10px 14px; cursor: pointer; }
 @keyframes pulse { from { opacity: .25; transform: translateY(1px); } to { opacity: 1; transform: translateY(-1px); } }
 @media (max-width: 800px) { .app-shell { padding: 22px 16px 18px; } .network-status { display: none; } .intro-row { padding: 55px 0 28px; display: block; } .intro-copy { margin-top: 24px; max-width: 330px; } .thread-grid { grid-template-columns: 1fr !important; min-height: 0; } .thread-card { min-height: 410px; } footer { font-size: 8px; } }

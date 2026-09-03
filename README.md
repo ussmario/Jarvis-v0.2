@@ -6,6 +6,8 @@ Jarvis is a local-first AI operating system interface. v0.2 provides three inten
 - **RE** (pronounced Ari): local Ollama session and future coordinator
 - **Codex**: OpenAI coding-focused API session
 
+ChatGPT uses the OpenAI Chat Completions API, Codex uses the OpenAI Responses API, and RE uses Ollama's local chat API. Each provider receives only its own thread history.
+
 ## Setup
 
 1. Install Node.js 18+ and Ollama.
