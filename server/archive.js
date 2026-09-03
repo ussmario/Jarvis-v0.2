@@ -31,6 +31,11 @@ export async function readThread(threadId) {
   return messages.filter((message) => ['user', 'assistant'].includes(message.role) && typeof message.content === 'string')
 }
 
+export async function readCoordinatorThreads() {
+  const [bob, sam] = await Promise.all([readThread('chatgpt'), readThread('codex')])
+  return { bob, sam }
+}
+
 export async function writeThread(threadId, messages) {
   const filePath = archivePath(threadId)
   const temporaryPath = `${filePath}.tmp`
