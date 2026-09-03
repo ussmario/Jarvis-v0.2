@@ -73,6 +73,34 @@ wsl --shutdown
 
 To bring it back after a full WSL shutdown, open WSL, return to this project directory, and run the start sequence above. If the Windows startup task is installed, it starts the WSL service automatically when you sign in; `npm run service:status` remains the authoritative check.
 
+### Codex Remote Control
+
+Codex remote control is an independent WSL user service. It does not depend on Jarvis and can be started, stopped, restarted, or inspected separately:
+
+```bash
+npm run codex:service:install
+npm run codex:service:status
+```
+
+The installer enables `codex-remote-control.service` under the WSL user systemd target, using the real WSL Codex binary and `CODEX_HOME` (normally `/home/mario/.codex`). It starts automatically when the WSL user systemd session starts, including after `wsl --shutdown`; Jarvis does not need to be running first.
+
+Manage it independently with:
+
+```bash
+npm run codex:service:start
+npm run codex:service:stop
+npm run codex:service:restart
+npm run codex:service:logs
+```
+
+Pairing is preserved in `CODEX_HOME`. Only generate a new pairing code if the mobile client loses its pairing:
+
+```bash
+CODEX_HOME=/home/mario/.codex codex remote-control pair
+```
+
+The former standalone `misc projects/remoteConnect.md` note was removed after its contents were consolidated here.
+
 Restart Jarvis after code or `.env` changes:
 
 ```bash
