@@ -28,8 +28,11 @@ For remote runtime work, also verify the service and both local endpoints:
 
 ```bash
 npm run service:status
-curl http://127.0.0.1:43117/
-curl http://127.0.0.1:43118/api/health
+npm run verify:runtime
 ```
 
 Do not run `npm run dev:tailscale` while the `jarvis-v02.service` is active; both use the same ports.
+
+## Runtime Updates
+
+The development and Tailscale commands run the backend with Node watch mode. Backend source changes reload automatically, and Vite handles frontend hot updates. A service restart is still required after changing `.env`, dependencies, the systemd template, or switching branches. The maintainer performs that restart and runs `npm run verify:runtime` as part of branch verification; contributors do not need to remember it manually.
