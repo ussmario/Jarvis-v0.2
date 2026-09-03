@@ -80,6 +80,16 @@ npm run service:restart
 npm run verify:runtime
 ```
 
+After you approve and merge a feature branch, publish the updated trunk so the remote does not fall behind:
+
+```bash
+git status --short --branch
+git push origin master
+git status --short --branch
+```
+
+The final status should show `master...origin/master` with no ahead/behind count and no working-tree changes. Do not push an unreviewed feature branch as `master`.
+
 The installer records the active WSL Node/npm installation in the user service PATH. This matters when systemd's default `/usr/bin/node` is older than the Node version used by the interactive shell.
 
 For a production deployment, serve the built frontend through the backend or a reverse proxy and put both services behind a Tailscale Serve configuration.
