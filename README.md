@@ -50,7 +50,9 @@ For a production deployment, serve the built frontend through the backend or a r
 
 ## Ivy Archive
 
-Successful conversations are stored on the WSL host under `Ivy/Bob/conversation.json`, `Ivy/RE/conversation.json`, and `Ivy/Sam/conversation.json`. The archive is server-owned, survives browser refreshes and service restarts, is shared by Tailscale clients, and is ignored by Git because it contains conversation data.
+Successful conversations are stored on the WSL host under `Ivy/Bob/conversation.json`, `Ivy/RE/conversation.json`, and `Ivy/Sam/conversation.json`. The archive is server-owned, append-only, survives browser refreshes and service restarts, is shared by Tailscale clients, and is ignored by Git because it contains conversation data.
+
+The displayed-history cursor is stored separately under `.jarvis/display-cursors.json`. Clearing a chat advances only that cursor; it never edits or deletes Ivy. Refreshing loads only messages after the cursor, while providers continue to receive the complete archived history.
 
 ## Session isolation and coordination
 
