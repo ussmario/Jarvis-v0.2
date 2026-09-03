@@ -132,7 +132,7 @@ function ChatThread({ thread, active, messages, draft, busy, onSelect, onDraft, 
         <div ref={bottomRef} />
       </div>
       <form className="composer" onSubmit={(event) => { event.preventDefault(); onSend() }} onClick={(event) => event.stopPropagation()}>
-        <textarea value={draft} onChange={(event) => onDraft(event.target.value)} placeholder={`Message ${thread.name}...`} rows="1" onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); onSend() } }} />
+        <textarea value={draft} onFocus={onSelect} onChange={(event) => onDraft(event.target.value)} placeholder={`Message ${thread.name}...`} rows="1" />
         <button type="submit" aria-label={`Send message to ${thread.name}`} disabled={busy || !draft.trim()}>↑</button>
       </form>
     </article>
