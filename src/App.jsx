@@ -36,6 +36,7 @@ function App() {
   const [messages, setMessages] = useState(initialMessages)
   const [drafts, setDrafts] = useState({ chatgpt: '', re: '', codex: '' })
   const [busy, setBusy] = useState(null)
+  const [clearing, setClearing] = useState(null)
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -82,6 +83,25 @@ function App() {
     }
   }
 
+  async function clearDisplayedChat(threadId) {
+    if (busy || clearing) return
+    setClearing(threadId)
+    try {
+      const response = await fetch(`/api/sessions/${threadId}/clear`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'The displayed chat could not be cleared.')
+      const thread = THREADS.find((item) => item.id === threadId)
+      setMessages((current) => ({ ...current, [threadId]: [{ role: 'assistant', content: thread.intro }] }))
+    } catch (error) {
+      setMessages((current) => ({
+        ...current,
+        [threadId]: [...current[threadId], { role: 'error', content: error instanceof Error ? error.message : String(error) }],
+      }))
+    } finally {
+      setClearing(null)
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -112,9 +132,11 @@ function App() {
             messages={messages[thread.id]}
             draft={drafts[thread.id]}
             busy={busy === thread.id}
+            clearing={clearing === thread.id}
             onSelect={() => setSelected(thread.id)}
             onDraft={(value) => setDrafts((current) => ({ ...current, [thread.id]: value }))}
             onSend={() => sendMessage(thread.id)}
+            onClear={() => clearDisplayedChat(thread.id)}
           />
         ))}
       </section>
@@ -123,7 +145,7 @@ function App() {
   )
 }
 
-function ChatThread({ thread, active, messages, draft, busy, onSelect, onDraft, onSend }) {
+function ChatThread({ thread, active, messages, draft, busy, clearing, onSelect, onDraft, onSend, onClear }) {
   const bottomRef = useRef(null)
   useEffect(() => {
     const node = bottomRef.current
@@ -136,6 +158,15 @@ function ChatThread({ thread, active, messages, draft, busy, onSelect, onDraft, 
         <div className="avatar">{thread.name === 'RE' ? 'R' : thread.name[0]}</div>
         <div className="thread-title"><h3>{thread.name}</h3><p>{thread.label}</p></div>
         <span className="provider-tag">{thread.provider}</span>
+        <button
+          className="clear-button"
+          type="button"
+          aria-label={`Clear displayed messages in ${thread.name}`}
+          onClick={(event) => { event.stopPropagation(); onClear() }}
+          disabled={busy || clearing}
+        >
+          {clearing ? 'clearing' : 'clear'}
+        </button>
       </header>
       <div className="message-list">
         {messages.map((message, index) => (
