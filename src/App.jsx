@@ -37,6 +37,19 @@ function App() {
   const [drafts, setDrafts] = useState({ chatgpt: '', re: '', codex: '' })
   const [busy, setBusy] = useState(null)
 
+  useEffect(() => {
+    fetch('/api/sessions')
+      .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.error || 'The Ivy archive could not be loaded.')
+        setMessages((current) => Object.fromEntries(THREADS.map((thread) => [thread.id, data.sessions[thread.id]?.length ? data.sessions[thread.id] : current[thread.id]])))
+      })
+      .catch((error) => setMessages((current) => ({
+        ...current,
+        re: [...current.re, { role: 'error', content: `Archive unavailable: ${error.message}` }],
+      })))
+  }, [])
+
   async function sendMessage(threadId) {
     const content = drafts[threadId].trim()
     if (!content || busy) return
@@ -50,7 +63,7 @@ function App() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId, messages: nextMessages }),
+        body: JSON.stringify({ threadId, content }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'The provider did not respond.')
