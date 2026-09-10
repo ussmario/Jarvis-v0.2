@@ -131,6 +131,12 @@ async function rewriteResolvedMessage({ originalMessage, draftMessage, resolvedP
         }),
       }],
       stream: false,
+      think: false,
+      format: 'json',
+      options: {
+        temperature: 0,
+        num_predict: 96,
+      },
     },
     signal,
   })
@@ -193,6 +199,7 @@ async function compileVerification({ content, messages }) {
   const timeout = setTimeout(() => controller.abort(new Error(`Verification compilation timed out after ${timeoutMs}ms.`)), timeoutMs)
 
   try {
+    const startedAt = Date.now()
     const response = await ollamaChat({
         url: ollamaUrl,
         model: process.env.OLLAMA_MODEL || 'qwen3:8b',
@@ -212,11 +219,18 @@ async function compileVerification({ content, messages }) {
             }),
           }],
           stream: false,
+          think: false,
+          format: 'json',
+          options: {
+            temperature: 0,
+            num_predict: 256,
+          },
         },
         signal: controller.signal,
       })
     if (!response.ok) throw new Error(`Ollama returned ${response.status}`)
     const compilerTiming = response.jarvisTiming
+    const contextStartedAt = Date.now()
     const data = await response.json()
     const parsed = JSON.parse(data.message?.content || '{}')
     const normalized = {
@@ -228,20 +242,30 @@ async function compileVerification({ content, messages }) {
     if (!['clarify', 'respond', 'dispatch'].includes(normalized.disposition) || !normalized.compiledMessage || !normalized.targetAgent || !normalized.proposedContext || !Array.isArray(normalized.constraints)) {
       throw new Error('Ollama returned an incomplete interpretation')
     }
+    const parsedAt = Date.now()
     const context = await buildContext({ originalMessage: content, compiledMessage: normalized.compiledMessage, constraints: normalized.constraints })
+    const contextFinishedAt = Date.now()
     const contextAmbiguous = context.unresolvedQuestions.length > 0
     const resolvedPath = !contextAmbiguous && context.selectedContext.length === 1 ? context.selectedContext[0].path : null
     const targetResolved = !contextAmbiguous && context.selectedContext.length > 0
     const resolvedDisposition = contextAmbiguous ? 'clarify' : (normalized.disposition === 'clarify' && targetResolved ? 'dispatch' : normalized.disposition)
     const resolvedTargetAgent = contextAmbiguous ? 'RE' : (targetResolved && normalized.targetAgent === 'RE' ? 'RE-Sam' : normalized.targetAgent)
+    const rewriteStartedAt = Date.now()
     const compiledMessage = resolvedPath
       ? await rewriteResolvedMessage({ originalMessage: content.trim(), draftMessage: normalized.compiledMessage, resolvedPath, signal: controller.signal })
       : normalized.compiledMessage
+    const finishedAt = Date.now()
     recordAudit({
       event: 'verification_compilation_timing',
       threadId: 're',
       model: process.env.OLLAMA_MODEL || 'qwen3:8b',
       timing: compilerTiming || null,
+      phases: {
+        parseMs: parsedAt - contextStartedAt,
+        contextMs: contextFinishedAt - parsedAt,
+        rewriteMs: finishedAt - rewriteStartedAt,
+        totalMs: finishedAt - startedAt,
+      },
       hadResolvedPath: Boolean(resolvedPath),
     }).catch(() => {})
     return {
