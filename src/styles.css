@@ -17,9 +17,42 @@ h1 { font-size: 16px; letter-spacing: .2em; margin: 0; } h1 span { color: #7e878
 .network-status { color: #9fa5a2; } .network-status i { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: #92c4aa; box-shadow: 0 0 10px #92c4aa; }
 .speech-button { width: 34px; height: 34px; border: 1px solid #485250; color: #d9b87c; background: transparent; cursor: pointer; font-size: 20px; line-height: 1; }
 .speech-button:hover, .speech-button:focus-visible { border-color: #d9b87c; box-shadow: 0 0 16px rgba(217, 184, 124, .2); }
+.mode-tabs { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid #30383a; background: rgba(23, 28, 30, .85); }
+.mode-tab { border: 0; color: #8e9995; background: transparent; padding: 8px 10px; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+.mode-tab:hover, .mode-tab:focus-visible { color: #f3f0e9; }
+.mode-tab.is-active { color: #171c1e; background: #d9b87c; }
 .mobile-chat-picker { display: none; align-items: center; gap: 7px; color: #9fa5a2; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .1em; }
 .mobile-chat-picker select { border: 1px solid #485250; color: #f3f0e9; background: #171c1e; padding: 7px; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .thread-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 0; flex: 1; }
+.verification-workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr); gap: 12px; min-height: 0; flex: 1; }
+.app-shell.is-verification { overflow: hidden; }
+.app-shell.is-verification .verification-workspace { min-height: 0; overflow: hidden; }
+.verification-panel, .verification-chat { min-height: 0; }
+.verification-chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.verification-chat > .thread-card { flex: 1 1 auto; height: 100%; min-height: 0; }
+.verification-chat > .thread-card .message-pane { min-height: 0; }
+.verification-panel { display: flex; flex-direction: column; overflow: hidden; cursor: default; }
+.verification-pane { border-top: 1px solid #30383a; }
+.verification-list { display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+.verification-note { margin: 0; color: #9fa5a2; font-size: 12px; line-height: 1.5; max-width: 62ch; }
+.verification-pill { display: grid; gap: 4px; justify-items: end; align-content: start; padding: 10px 12px; border: 1px solid #485250; background: rgba(16, 19, 22, .92); color: #d9b87c; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.verification-pill span { color: #8e9995; }
+.verification-pill strong { color: #f3f0e9; font-size: 14px; letter-spacing: .06em; }
+.verification-empty { margin: 0; color: #aeb7b3; font-size: 13px; line-height: 1.6; }
+.verification-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.verification-meta div { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid #30383a; background: rgba(16, 19, 22, .8); }
+.verification-meta span { color: #8e9995; font: 500 8px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .1em; }
+.verification-meta strong { color: #f3f0e9; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.verification-card { border: 1px solid #30383a; background: rgba(16, 19, 22, .8); padding: 12px; min-width: 0; }
+.verification-card p { margin: 7px 0 0; color: #d9ddda; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.verification-card pre { margin: 7px 0 0; color: #aeb7b3; font: 11px/1.5 'DM Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
+.verification-context { grid-column: 1 / -1; }
+.verification-actions { display: flex; gap: 8px; align-items: center; }
+.verification-actions button { width: auto; height: auto; border: 1px solid #d9b87c; color: #d9b87c; background: transparent; padding: 7px 10px; cursor: pointer; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.verification-actions button:hover:not(:disabled), .verification-actions button:focus-visible { background: #d9b87c; color: #171c1e; }
+.verification-actions button:disabled { opacity: .35; cursor: default; }
+.composer.verification-actions { align-items: center; }
+.composer.verification-actions button { width: auto; height: auto; flex: 0 0 auto; padding: 7px 10px; font: 500 9px 'DM Mono', monospace; line-height: 1.2; text-transform: uppercase; letter-spacing: .08em; }
 .thread-card { min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid #30383a; background: rgba(23, 28, 30, .84); transition: border-color .35s ease, background .35s ease; cursor: pointer; overflow: hidden; }
 .thread-card.is-active { border-color: var(--accent); background: rgba(30, 36, 37, .96); box-shadow: inset 0 3px 0 var(--accent); }
 .thread-header { display: flex; align-items: center; gap: 11px; padding: 17px; border-bottom: 1px solid #30383a; }
@@ -32,6 +65,7 @@ h1 { font-size: 16px; letter-spacing: .2em; margin: 0; } h1 span { color: #7e878
 .message-pane { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .message-list { height: 100%; overflow: auto; padding: 25px 17px; }
 .message { max-width: 92%; margin-bottom: 22px; font-size: 14px; line-height: 1.55; } .message p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-receipt { margin: 10px 0 0; padding: 10px; max-width: 100%; overflow: auto; border: 1px solid rgba(130, 191, 170, .28); border-radius: 8px; background: rgba(12, 27, 26, .55); color: var(--mint); font-size: 10px; line-height: 1.4; }
 .message-assistant { color: #d9ddda; } .message-user { color: #aeb7b3; margin-left: auto; text-align: right; } .message-error { color: #e6a69b; border-left: 2px solid #d8796b; padding-left: 10px; }
 .message-label { color: var(--accent); font-size: 8px; } .typing { display: flex; gap: 4px; padding: 8px 0; } .typing span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: pulse 1s infinite alternate; } .typing span:nth-child(2) { animation-delay: .2s; } .typing span:nth-child(3) { animation-delay: .4s; }
 .replay-button { display: block; border: 0; padding: 0; background: transparent; cursor: pointer; font: inherit; text-transform: uppercase; letter-spacing: .13em; }
@@ -68,4 +102,4 @@ h1 { font-size: 16px; letter-spacing: .2em; margin: 0; } h1 span { color: #7e878
 footer { padding-top: 18px; color: #596361; } footer span:last-child { color: #737e7b; }
 .error-screen { justify-content: center; align-items: flex-start; gap: 12px; } .error-screen h1 { font-size: clamp(30px, 5vw, 54px); max-width: 600px; margin: 0; } .error-screen p:not(.eyebrow) { color: #aeb7b3; max-width: 600px; } .error-screen button { border: 1px solid #d9b87c; color: #d9b87c; background: transparent; padding: 10px 14px; cursor: pointer; }
 @keyframes pulse { from { opacity: .25; transform: translateY(1px); } to { opacity: 1; transform: translateY(-1px); } }
-@media (max-width: 800px) { .app-shell { height: auto; min-height: 100dvh; padding: 16px 12px 14px; overflow: auto; } .network-status { display: none; } .topbar-actions { gap: 8px; } .mobile-chat-picker { display: flex; } .thread-grid { grid-template-columns: 1fr !important; flex: 0 0 auto; } .thread-card { height: min(74dvh, 680px); min-height: 380px; } .thread-card:not(.is-active) { display: none; } footer { font-size: 8px; } }
+@media (max-width: 800px) { .app-shell { height: auto; min-height: 100dvh; padding: 16px 12px 14px; overflow: auto; } .app-shell.is-verification { height: 100dvh; overflow: hidden; } .network-status { display: none; } .topbar-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; } .mode-tabs { order: 3; width: 100%; justify-content: center; } .mobile-chat-picker { display: flex; } .thread-grid { grid-template-columns: 1fr !important; flex: 0 0 auto; } .verification-workspace { grid-template-columns: 1fr !important; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); flex: 1 1 auto; } .verification-meta { grid-template-columns: 1fr; } .verification-context { grid-column: auto; } .thread-card { height: min(74dvh, 680px); min-height: 380px; } .app-shell.is-verification .thread-card { height: 100%; min-height: 0; } .thread-card:not(.is-active) { display: none; } footer { font-size: 8px; } }
