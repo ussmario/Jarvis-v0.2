@@ -133,11 +133,22 @@ function runCommand(command, timeoutMs = 120000) {
   })
 }
 
-export function requiresApproval(name) {
+function isReadOnlyInspectionCommand(command) {
+  const text = String(command || '').trim()
+  if (!text || /[;|><`$(){}]/.test(text)) return false
+  const segments = text.split(/\s*&&\s*/)
+  return segments.length > 0 && segments.every((segment) => {
+    const tokens = segment.trim().split(/\s+/)
+    return tokens[0] === 'pwd' || tokens[0] === 'ls'
+  })
+}
+
+export function requiresApproval(name, args = {}) {
+  if (name === 'run_command' && isReadOnlyInspectionCommand(args.command)) return false
   return approvalTools.has(name)
 }
 
-export async function executeTool(name, args) {
+export async function executeTool(name, args, metadata = {}) {
   let result
   if (name === 'list_directory') result = await listDirectory(args.path)
   else if (name === 'read_file') result = await readWorkspaceFile(args.path)
@@ -150,7 +161,7 @@ export async function executeTool(name, args) {
     result = { path: args.path, written: true }
   } else if (name === 'run_command') result = await runCommand(args.command, args.timeoutMs)
   else throw new Error(`Unknown Sam tool: ${name}`)
-  await recordAudit({ event: 'tool_completed', tool: name, arguments: args, result: typeof result === 'string' ? result.slice(0, 1000) : result })
+  await recordAudit({ event: 'tool_completed', tool: name, arguments: args, result: typeof result === 'string' ? result.slice(0, 1000) : result, ...metadata })
   return result
 }
 

@@ -4,8 +4,8 @@ import path from 'node:path'
 const archiveRoot = path.resolve(process.env.JARVIS_ARCHIVE_ROOT || path.join(process.cwd(), 'Ivy'))
 const displayStateRoot = path.resolve(process.env.JARVIS_DISPLAY_STATE_ROOT || path.join(process.cwd(), '.jarvis'))
 const displayStatePath = path.join(displayStateRoot, 'display-cursors.json')
-const archiveDirectories = { chatgpt: 'Bob', re: 'RE', codex: 'Sam' }
-const archiveFiles = { chatgpt: 'conversation.json', re: 'conversation.json', codex: 'conversation.json' }
+const archiveDirectories = { chatgpt: 'Bob', re: 'RE', codex: 'Sam', reSam: 'RE-Sam' }
+const archiveFiles = { chatgpt: 'conversation.json', re: 'conversation.json', codex: 'conversation.json', reSam: 'conversation.json' }
 
 export const threadIds = Object.keys(archiveDirectories)
 
@@ -45,8 +45,8 @@ export async function readThread(threadId) {
 }
 
 export async function readCoordinatorThreads() {
-  const [bob, sam] = await Promise.all([readThread('chatgpt'), readThread('codex')])
-  return { bob, sam }
+  const [bob, sam, reSam] = await Promise.all([readThread('chatgpt'), readThread('codex'), readThread('reSam')])
+  return { bob, sam, reSam }
 }
 
 async function readDisplayCursors() {
