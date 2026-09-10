@@ -231,8 +231,9 @@ async function compileVerification({ content, messages }) {
     const context = await buildContext({ originalMessage: content, compiledMessage: normalized.compiledMessage, constraints: normalized.constraints })
     const contextAmbiguous = context.unresolvedQuestions.length > 0
     const resolvedPath = !contextAmbiguous && context.selectedContext.length === 1 ? context.selectedContext[0].path : null
-    const resolvedDisposition = contextAmbiguous ? 'clarify' : (normalized.disposition === 'clarify' && resolvedPath ? 'dispatch' : normalized.disposition)
-    const resolvedTargetAgent = contextAmbiguous ? 'RE' : (resolvedPath && normalized.targetAgent === 'RE' ? 'RE-Sam' : normalized.targetAgent)
+    const targetResolved = !contextAmbiguous && context.selectedContext.length > 0
+    const resolvedDisposition = contextAmbiguous ? 'clarify' : (normalized.disposition === 'clarify' && targetResolved ? 'dispatch' : normalized.disposition)
+    const resolvedTargetAgent = contextAmbiguous ? 'RE' : (targetResolved && normalized.targetAgent === 'RE' ? 'RE-Sam' : normalized.targetAgent)
     const compiledMessage = resolvedPath
       ? await rewriteResolvedMessage({ originalMessage: content.trim(), draftMessage: normalized.compiledMessage, resolvedPath, signal: controller.signal })
       : normalized.compiledMessage
@@ -368,10 +369,23 @@ function executionPromptFor(job) {
 async function recordReSamApproval({ approvalId, status, tool, arguments: args, jobId, receipt = null }) {
   if (!jobId) return
   const messages = await readThread('re')
+  const job = await getOrchestrationJob(jobId)
+  const originIndex = messages.findIndex((message) => message.verification?.checkpointId === job?.checkpointId)
+  if (originIndex < 0 && job?.originalMessage?.content) {
+    const firstApprovalIndex = messages.findIndex((message) => message.approval?.jobId === jobId)
+    messages.splice(firstApprovalIndex >= 0 ? firstApprovalIndex : messages.length, 0, {
+      role: 'user',
+      content: job.originalMessage.content,
+      verification: job.verification,
+    })
+  }
   const approval = { id: approvalId, status, tool, arguments: args, jobId, receipt, at: new Date().toISOString() }
   const index = messages.findIndex((message) => message.approval?.id === approvalId)
   if (index >= 0) messages[index] = { ...messages[index], approval: { ...messages[index].approval, ...approval } }
-  else messages.push({ role: 'assistant', content: 'RE-Sam approval request', approval })
+  else {
+    const lastJobApproval = messages.map((message, messageIndex) => message.approval?.jobId === jobId ? messageIndex : -1).filter((messageIndex) => messageIndex >= 0).pop()
+    messages.splice(lastJobApproval === undefined ? messages.length : lastJobApproval + 1, 0, { role: 'assistant', content: 'RE-Sam approval request', approval })
+  }
   await writeThread('re', messages)
 }
 
@@ -482,12 +496,16 @@ async function createVerifiedOrchestrationJob(verification) {
 
 async function commitOrchestrationToRe(job, message, receipt) {
   const messages = await readThread('re')
-  if (messages.some((item) => item.verification?.checkpointId === job.checkpointId)) return
-  await writeThread('re', [
-    ...messages,
-    { role: 'user', content: job.originalMessage.content, verification: job.verification },
-    { role: 'assistant', content: message, receipt },
-  ])
+  const originIndex = messages.findIndex((item) => item.verification?.checkpointId === job.checkpointId)
+  if (messages.some((item) => item.receipt?.receiptId && item.receipt.receiptId === receipt?.receiptId)) return
+  const resultMessage = { role: 'assistant', content: message, receipt }
+  if (originIndex < 0) {
+    await writeThread('re', [...messages, { role: 'user', content: job.originalMessage.content, verification: job.verification }, resultMessage])
+    return
+  }
+  const lastJobApproval = messages.map((item, index) => item.approval?.jobId === job.jobId ? index : -1).filter((index) => index >= 0).pop()
+  messages.splice(lastJobApproval === undefined ? originIndex + 1 : lastJobApproval + 1, 0, resultMessage)
+  await writeThread('re', messages)
 }
 
 app.get('/api/orchestration/jobs/:jobId', async (request, response) => {

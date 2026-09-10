@@ -157,11 +157,16 @@ export async function buildContext({ originalMessage, compiledMessage, constrain
 
   const archiveCandidates = await contextSources.get('archive').search(requirements)
   const referencedCandidates = rankReferencedCandidates(archiveCandidates, `${originalMessage}\n${compiledMessage}`)
-  const workspaceCandidates = await contextSources.get('workspace').search({ candidatePaths: referencedCandidates.map((candidate) => candidate.path) })
-  const candidates = [...referencedCandidates, ...workspaceCandidates]
+  const explicitWorkspaceCandidates = await contextSources.get('workspace').search({ candidatePaths: requirements.explicitPaths })
+  const referencedWorkspaceCandidates = await contextSources.get('workspace').search({ candidatePaths: referencedCandidates.map((candidate) => candidate.path) })
+  const explicitPathSet = new Set(requirements.explicitPaths.map((candidatePath) => path.normalize(candidatePath)))
+  const explicitTargets = requirements.explicitPaths.map((candidatePath) => ({ source: 'user', path: path.normalize(candidatePath), explicit: true }))
+  const candidates = [...explicitTargets, ...explicitWorkspaceCandidates, ...referencedCandidates, ...referencedWorkspaceCandidates]
   const pathCandidates = [...new Map(candidates.filter((candidate) => candidate.path).map((candidate) => [candidate.path, candidate])).values()]
-  const selectedContext = pathCandidates.length === 1 ? pathCandidates : pathCandidates.slice(0, 20)
-  const unresolvedQuestions = pathCandidates.length === 1 ? [] : ['Which exact file or path should this request target?']
+  const selectedContext = explicitPathSet.size
+    ? pathCandidates.filter((candidate) => explicitPathSet.has(path.normalize(candidate.path)))
+    : pathCandidates.length === 1 ? pathCandidates : pathCandidates.slice(0, 20)
+  const unresolvedQuestions = explicitPathSet.size || selectedContext.length === 1 ? [] : ['Which exact file or path should this request target?']
   return {
     proposedContext: requirements.requirements,
     selectedContext,

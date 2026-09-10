@@ -436,21 +436,26 @@ function App() {
   }
 
   async function completeOrchestration(data) {
-    if (data.state !== 'completed') return
+    const completed = data.state === 'completed'
+    const resultMessage = typeof data.message === 'string'
+      ? data.message
+      : typeof data.resultMessage === 'string'
+        ? data.resultMessage
+        : `RE-Sam orchestration ${data.state || 'failed'} without a result.`
     setMessages((current) => ({
       ...current,
       re: [
         ...current.re,
         ...(current.re.some((item) => item.verification?.checkpointId === verification?.checkpointId) ? [] : [{ role: 'user', content: verification.originalMessage.content, verification }]),
-        { role: 'assistant', content: data.message, receipt: data.receipt },
+        { role: completed ? 'assistant' : 'error', content: resultMessage, receipt: data.receipt },
       ],
     }))
-    await reportVerificationEvent('orchestration_completed', verification, 'completed')
+    await reportVerificationEvent(completed ? 'orchestration_completed' : 'orchestration_failed', verification, completed ? 'completed' : 'failed')
     await clearVerificationCheckpoint()
     updateVerification(null)
     setViewMode('conversation')
     saveStoredObject(VIEW_STORAGE_KEY, 'conversation')
-    if (tts.re) speak('re', data.message)
+    if (completed && tts.re) speak('re', resultMessage)
   }
 
   async function denyAction(threadId) {
@@ -492,6 +497,9 @@ function App() {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'The orchestration job could not be started.')
         if (data.pendingApproval) {
+          setMessages((current) => current.re.some((message) => message.approval?.id === data.pendingApproval.id)
+            ? current
+            : { ...current, re: [...current.re, { role: 'assistant', content: 'RE-Sam approval request', approval: data.pendingApproval }] })
           setApprovals((current) => ({ ...current, reSam: data.pendingApproval }))
           return
         }
@@ -776,6 +784,7 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
   const messageListRef = useRef(null)
   const stickToBottomRef = useRef(true)
   const [showNewest, setShowNewest] = useState(false)
+  const activeApprovalInMessages = messages.some((message) => message.approval?.id === approval?.id)
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef(null)
   const listeningRef = useRef(false)
@@ -891,11 +900,11 @@ function ChatThread({ thread, active, messages, draft, busy, clearing, clearVers
               {message.role === 'assistant' && <button className="message-label replay-button" type="button" title={`Replay ${thread.name}'s message`} aria-label={`Replay ${thread.name}'s message`} onClick={(event) => { event.stopPropagation(); speak(thread.id, message.content) }}>{thread.name}</button>}
               <p>{message.content}</p>
               {message.receipt && <pre className="tool-receipt">{JSON.stringify(message.receipt, null, 2)}</pre>}
-              {message.approval && message.approval.id !== approval?.id && <details className="approval-card historical-approval"><summary>Sam approval: {message.approval.status}</summary><p>{message.approval.tool}</p><pre>{JSON.stringify(message.approval.arguments, null, 2)}</pre>{message.approval.receipt && <pre className="tool-receipt">{JSON.stringify(message.approval.receipt, null, 2)}</pre>}</details>}
+              {message.approval && <details className={`approval-card ${message.approval.id === approval?.id ? '' : 'historical-approval'}`} open={message.approval.id === approval?.id || undefined}><summary>Sam approval: {message.approval.status}</summary><p>{message.approval.tool}</p><pre>{JSON.stringify(message.approval.arguments, null, 2)}</pre>{message.approval.receipt && <pre className="tool-receipt">{JSON.stringify(message.approval.receipt, null, 2)}</pre>}{message.approval.id === approval?.id && <div className="approval-actions"><button type="button" onClick={onApprove} disabled={busy}>approve action</button><button type="button" onClick={onDeny} disabled={busy}>deny</button></div>}</details>}
             </div>
           ))}
           {busy && <div className="typing"><span /><span /><span /></div>}
-          {approval && <details className="approval-card" open><summary>Sam requests approval</summary><p>{approval.tool}</p><pre>{JSON.stringify(approval.arguments, null, 2)}</pre><div className="approval-actions"><button type="button" onClick={onApprove} disabled={busy}>approve action</button><button type="button" onClick={onDeny} disabled={busy}>deny</button></div></details>}
+          {approval && !activeApprovalInMessages && <details className="approval-card" open><summary>Sam requests approval</summary><p>{approval.tool}</p><pre>{JSON.stringify(approval.arguments, null, 2)}</pre><div className="approval-actions"><button type="button" onClick={onApprove} disabled={busy}>approve action</button><button type="button" onClick={onDeny} disabled={busy}>deny</button></div></details>}
           <div ref={bottomRef} />
         </div>
         {showNewest && <button className="newest-button" type="button" aria-label={`Jump to newest message in ${thread.name}`} onClick={scrollToNewest}>↓ newest</button>}

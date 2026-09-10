@@ -170,7 +170,7 @@ The provider-facing pre-AAAK packet is:
 
 `proposedContext` is planning metadata for the resolver and is never sent as selected context. Ambiguous file or path references must become clarification requests instead of being guessed.
 
-Context resolution runs after paraphrasing. Registered context sources search for evidence without changing the paraphrase. An explicit path in the original message takes precedence and constrains discovery to that path; unrelated archive candidates cannot turn an explicit target into path ambiguity. The current sources are archive receipts/messages and workspace metadata for archive-identified candidate paths. Conversational references such as “the same file” are resolved by ranking receipt-backed candidates using matching operation/content and recency; genuinely tied candidates remain clarification requests. Relative dates are evaluated in the configured local timezone. Source adapters can be added later for MemPalace, MCP resources, databases, or other knowledge systems.
+Context resolution runs after paraphrasing. Registered context sources search for evidence without changing the paraphrase. An explicit path in the original message takes precedence and constrains discovery to that path; the workspace is checked directly even when the path has no archive record or does not exist yet. Unrelated archive candidates cannot turn an explicit target into path ambiguity. The current sources are archive receipts/messages and workspace metadata for archive-identified candidate paths. Conversational references such as “the same file” are resolved by ranking receipt-backed candidates using matching operation/content and recency; genuinely tied references remain clarification requests. Relative dates are evaluated in the configured local timezone. Source adapters can be added later for MemPalace, MCP resources, databases, or other knowledge systems.
 
 ## Sam workspace tools
 
@@ -179,6 +179,10 @@ Sam uses the OpenAI Responses API with Jarvis-hosted tools. Direct Sam uses the 
 RE-Sam approval requests are also recorded in the RE timeline with their tool arguments and lifecycle status (`pending`, `approved`, `denied`, `failed`, or `completed`). The UI renders them as collapsible historical cards, while the active request remains actionable. Conservative `pwd`/`ls` inspection chains joined with `&&` are treated as harmless read-only workspace inspection and do not create approval cards; other shell commands remain approval-bound.
 
 Ollama wake uses a minimal real generation with the configured model before a compiler request proceeds. Compilation timing records distinguish model wake time from chat time in `.jarvis/audit.jsonl` without forwarding that diagnostic metadata to agents.
+
+Failed orchestration jobs are rendered in RE as failure messages with their tool receipt, then the stale verification checkpoint is cleared so the request can be corrected and resubmitted without implying completion.
+
+Archive writes are serialized per thread and use unique temporary files with bounded retries for transient `EACCES`, `EBUSY`, or `EPERM` rename locks from synchronized folders such as OneDrive.
 
 ## Browser Voice
 
